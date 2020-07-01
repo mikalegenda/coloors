@@ -11,6 +11,9 @@ function generateHex() {
 }
 
 //Adding event listeners
+sliders.forEach((slider) => {
+  slider.addEventListener("input", hslControls);
+});
 
 //Adding the colors to div background and hex code
 function randomColors() {
@@ -57,7 +60,29 @@ function colorizeSliders(color, hue, bright, sat) {
   //Input bg update
   sat.style.background = `linear-gradient(to right, ${scaleSat(0)},${scaleSat(1)})`;
   hue.style.background = `linear-gradient(to right, rgb(204,75,75), rgb(204,204,75), rgb(75,204,75), rgb(75,204,204), rgb(75,75,204), rgb(204,75,204), rgb(204,75,75))`;
-  bright.style.background = `linear-gradient(to right, ${scaleBright(0)},${scaleBright(0.5)},${scaleBright(1)})`;
+  bright.style.background = `linear-gradient(to right, ${scaleBright(0)},${scaleBright(
+    0.5
+  )},${scaleBright(1)})`;
+}
+
+function hslControls(e) {
+  const index =
+    e.target.getAttribute("data-bright") ||
+    e.target.getAttribute("data-hue") ||
+    e.target.getAttribute("data-sat");
+  let sliders = e.target.parentElement.querySelectorAll('input[type="range"]');
+  const hue = sliders[0];
+  const bright = sliders[1];
+  const sat = sliders[2];
+
+  const currentBgColor = colorDivs[index].querySelector("h2").innerText;
+
+  let color = chroma(currentBgColor)
+    .set("hsl.s", sat.value)
+    .set("hsl.l", bright.value)
+    .set("hsl.h", hue.value);
+
+  colorDivs[index].style.background = color;
 }
 
 randomColors();
