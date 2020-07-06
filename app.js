@@ -3,6 +3,8 @@ const colorDivs = document.querySelectorAll(".color");
 const generateBtn = document.querySelector(".generate");
 const sliders = document.querySelectorAll('input[type="range"]');
 const currentHexes = document.querySelectorAll(".color h2");
+const copyPopup = document.querySelector(".copy-container");
+let initialColors;
 
 //Color generator
 function generateHex() {
@@ -15,11 +17,35 @@ sliders.forEach((slider) => {
   slider.addEventListener("input", hslControls);
 });
 
+colorDivs.forEach((div, index) => {
+  div.addEventListener("change", () => {
+    updateTextUI(index);
+  });
+});
+
+currentHexes.forEach((hex) => {
+  hex.addEventListener("click", () => {
+    copyToClipboard(hex);
+  });
+});
+
+copyPopup.addEventListener("transitionend", () => {
+  const popupBox = copyPopup.children[0];
+  copyPopup.classList.remove("active");
+  popupBox.classList.remove("active");
+});
+
 //Adding the colors to div background and hex code
 function randomColors() {
+  //initial colors
+  initialColors = [];
+
   colorDivs.forEach((div, index) => {
     const hexText = div.children[0];
     const randomColor = generateHex();
+
+    // Add it to the array
+    initialColors.push(chroma(randomColor).hex());
 
     div.style.background = randomColor;
     hexText.innerText = randomColor;
@@ -36,6 +62,9 @@ function randomColors() {
 
     colorizeSliders(color, hue, bright, sat);
   });
+
+  //Reset slider inputs
+  resetInputs();
 }
 
 function checkTextContrast(color, text) {
@@ -60,29 +89,72 @@ function colorizeSliders(color, hue, bright, sat) {
   //Input bg update
   sat.style.background = `linear-gradient(to right, ${scaleSat(0)},${scaleSat(1)})`;
   hue.style.background = `linear-gradient(to right, rgb(204,75,75), rgb(204,204,75), rgb(75,204,75), rgb(75,204,204), rgb(75,75,204), rgb(204,75,204), rgb(204,75,75))`;
-  bright.style.background = `linear-gradient(to right, ${scaleBright(0)},${scaleBright(
-    0.5
-  )},${scaleBright(1)})`;
+  bright.style.background = `linear-gradient(to right, ${scaleBright(0)},${scaleBright(0.5)},${scaleBright(1)})`;
 }
 
 function hslControls(e) {
-  const index =
-    e.target.getAttribute("data-bright") ||
-    e.target.getAttribute("data-hue") ||
-    e.target.getAttribute("data-sat");
+  const index = e.target.getAttribute("data-bright") || e.target.getAttribute("data-hue") || e.target.getAttribute("data-sat");
   let sliders = e.target.parentElement.querySelectorAll('input[type="range"]');
   const hue = sliders[0];
   const bright = sliders[1];
   const sat = sliders[2];
 
-  const currentBgColor = colorDivs[index].querySelector("h2").innerText;
+  const currentBgColor = initialColors[index];
 
-  let color = chroma(currentBgColor)
-    .set("hsl.s", sat.value)
-    .set("hsl.l", bright.value)
-    .set("hsl.h", hue.value);
+  let color = chroma(currentBgColor).set("hsl.s", sat.value).set("hsl.l", bright.value).set("hsl.h", hue.value);
 
   colorDivs[index].style.background = color;
+
+  //Update input colors
+  colorizeSliders(color, hue, bright, sat);
+}
+
+function updateTextUI(index) {
+  const activeDiv = colorDivs[index];
+  const color = chroma(activeDiv.style.background);
+  const textHex = activeDiv.querySelector("h2");
+  const icons = activeDiv.querySelectorAll(".controls button");
+
+  textHex.innerText = color.hex();
+
+  //Check contrast
+  checkTextContrast(color, textHex);
+
+  for (icon of icons) {
+    checkTextContrast(color, icon);
+  }
+}
+
+function resetInputs() {
+  sliders.forEach((slider) => {
+    if (slider.name === "hue") {
+      const hueColor = initialColors[slider.getAttribute("data-hue")];
+      const hueValue = chroma(hueColor).hsl()[0];
+      slider.value = Math.floor(hueValue);
+    } else if (slider.name === "brightness") {
+      const brightColor = initialColors[slider.getAttribute("data-bright")];
+      const brightValue = chroma(brightColor).hsl()[1];
+      slider.value = Math.floor(brightValue * 100) / 100;
+    } else if (slider.name === "saturation") {
+      const satColor = initialColors[slider.getAttribute("data-sat")];
+      const satValue = chroma(satColor).hsl()[1];
+      slider.value = Math.floor(satValue * 100) / 100;
+    }
+  });
+}
+
+function copyToClipboard(hex) {
+  const element = document.createElement("textarea");
+  element.value = hex.innerText;
+  document.body.appendChild(element);
+  element.select();
+  document.execCommand("copy");
+  document.body.removeChild(element);
+
+  //Pop-up Animation
+  const popupBox = copyPopup.children[0];
+  copyPopup.classList.add("active");
+  popupBox.classList.add("active");
 }
 
 randomColors();
